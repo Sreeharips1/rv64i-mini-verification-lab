@@ -1,0 +1,43 @@
+stages:
+  - lint
+  - simulation
+
+default:
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update -qq
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y verilator make g++
+
+# Stage 1: Check RTL syntax and warnings
+rtl_lint:
+  stage: lint
+  script:
+    - verilator --version
+    - verilator --lint-only -Wall --top-module rv64_alu rtl/rv64_alu.sv
+    - verilator --lint-only -Wall --top-module rv64_register_file rtl/rv64_register_file.sv
+    - verilator --lint-only -Wall --top-module rv64_alu_regfile_top rtl/rv64_register_file.sv rtl/rv64_alu.sv rtl/rv64_alu_regfile_top.sv
+
+# Stage 2: Compile and simulate testbenches
+rtl_simulation:
+  stage: simulation
+  script:
+    - set -eu
+
+      # ALU simulation
+    - mkdir -p obj_dir/alu obj_dir/regfile obj_dir/datapath
+    - verilator --binary --timing -Wall --Mdir obj_dir/alu --top-module tb_alu rtl/rv64_alu.sv testbench/tb_alu.sv
+    - ./obj_dir/alu/Vtb_alu > obj_dir/alu/simulation.log
+    - cat obj_dir/alu/simulation.log
+    - grep -q "ALL TESTS PASSED" obj_dir/alu/simulation.log
+
+    # Register file simulation
+    - verilator --binary --timing -Wall --Mdir obj_dir/regfile --top-module tb_register_file rtl/rv64_register_file.sv testbench/tb_register_file.sv
+    - ./obj_dir/regfile/Vtb_register_file > obj_dir/regfile/simulation.log
+    - cat obj_dir/regfile/simulation.log
+    - grep -q "ALL TESTS PASSED" obj_dir/regfile/simulation.log
+
+    # Integrated datapath simulation
+    - verilator --binary --timing -Wall --Mdir obj_dir/datapath --top-module tb_alu_regfile_top rtl/rv64_register_file.sv rtl/rv64_alu.sv rtl/rv64_alu_regfile_top.sv testbench/tb_alu_regfile_top.sv
+    - ./obj_dir/datapath/Vtb_alu_regfile_top > obj_dir/datapath/simulation.log
+    - cat obj_dir/datapath/simulation.log
+    - grep -q "ALL TESTS PASSED" obj_dir/datapath/simulation.log
