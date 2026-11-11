@@ -1,0 +1,10 @@
+# Verilator generated files
+obj_dir/
+
+# Waveform files
+*.vcd
+*.fst
+
+# Temporary files
+*.log
+
