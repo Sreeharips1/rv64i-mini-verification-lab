@@ -62,6 +62,60 @@ module tb_alu;
         check_result(4'b1000, 64'hFFFFFFFFFFFFFFFB, 3, 1);
         check_result(4'b1001, 64'hFFFFFFFFFFFFFFFB, 3, 0);
 
+        // Boundary and corner-case tests
+
+        // ADD: 64-bit overflow
+        check_result(4'b0000,
+                     64'hFFFFFFFFFFFFFFFF,
+                     64'h0000000000000001,
+                     64'h0000000000000000);
+
+        // SUB: 0 - 1
+        check_result(4'b0001,
+                     64'h0000000000000000,
+                     64'h0000000000000001,
+                     64'hFFFFFFFFFFFFFFFF);
+
+        // SLL: shift left by maximum amount (63)
+        check_result(4'b0101,
+                     64'h0000000000000001,
+                     64'd63,
+                     64'h8000000000000000);
+
+        // SRL: logical right shift
+        check_result(4'b0110,
+                     64'hFFFFFFFFFFFFFFFF,
+                     64'd2,
+                     64'h3FFFFFFFFFFFFFFF);
+
+        // SRA: arithmetic right shift of -16
+        check_result(4'b0111,
+                     64'hFFFFFFFFFFFFFFF0,
+                     64'd2,
+                     64'hFFFFFFFFFFFFFFFC);
+
+        // SLT: signed comparison (-1 < 0)
+        check_result(4'b1000,
+                     64'hFFFFFFFFFFFFFFFF,
+                     64'h0000000000000000,
+                     64'd1);
+
+        // SLTU: unsigned comparison
+        check_result(4'b1001,
+                     64'hFFFFFFFFFFFFFFFF,
+                     64'h0000000000000000,
+                     64'd0);
+
+        // Invalid ALU operation
+        check_result(4'b1010,
+                     64'd10,
+                     64'd20,
+                     64'd0);
+
+
+
+
+
         $display("--------------------------------");
         $display("PASS COUNT: %0d", pass_count);
         $display("FAIL COUNT: %0d", fail_count);
@@ -74,5 +128,4 @@ module tb_alu;
         $finish;
 
     end
-
 endmodule
