@@ -8,3 +8,6 @@ obj_dir/
 # Temporary files
 *.log
 
+# Generated verification reports
+reports/*.xml
+reports/*.log

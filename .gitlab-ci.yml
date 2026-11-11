@@ -6,7 +6,7 @@ default:
   image: ubuntu:24.04
   before_script:
     - apt-get update -qq
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y verilator make g++
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y verilator make g++ python3
 
 # Stage 1: Check RTL syntax and warnings
 rtl_lint:
@@ -18,26 +18,35 @@ rtl_lint:
     - verilator --lint-only -Wall --top-module rv64_alu_regfile_top rtl/rv64_register_file.sv rtl/rv64_alu.sv rtl/rv64_alu_regfile_top.sv
 
 # Stage 2: Compile and simulate testbenches
+
 rtl_simulation:
   stage: simulation
   script:
     - set -eu
+    - mkdir -p obj_dir/alu obj_dir/regfile obj_dir/datapath reports
 
-      # ALU simulation
-    - mkdir -p obj_dir/alu obj_dir/regfile obj_dir/datapath
+    # ALU simulation
     - verilator --binary --timing -Wall --Mdir obj_dir/alu --top-module tb_alu rtl/rv64_alu.sv testbench/tb_alu.sv
-    - ./obj_dir/alu/Vtb_alu > obj_dir/alu/simulation.log
-    - cat obj_dir/alu/simulation.log
-    - grep -q "ALL TESTS PASSED" obj_dir/alu/simulation.log
+    - ./obj_dir/alu/Vtb_alu > reports/alu-simulation.log
+    - cat reports/alu-simulation.log
+    - python3 scripts/generate_junit.py reports/alu-simulation.log reports/alu-results.xml
 
     # Register file simulation
     - verilator --binary --timing -Wall --Mdir obj_dir/regfile --top-module tb_register_file rtl/rv64_register_file.sv testbench/tb_register_file.sv
-    - ./obj_dir/regfile/Vtb_register_file > obj_dir/regfile/simulation.log
-    - cat obj_dir/regfile/simulation.log
-    - grep -q "ALL TESTS PASSED" obj_dir/regfile/simulation.log
+    - ./obj_dir/regfile/Vtb_register_file > reports/register-file-simulation.log
+    - cat reports/register-file-simulation.log
+    - python3 scripts/generate_junit.py reports/register-file-simulation.log reports/register-file-results.xml
 
     # Integrated datapath simulation
     - verilator --binary --timing -Wall --Mdir obj_dir/datapath --top-module tb_alu_regfile_top rtl/rv64_register_file.sv rtl/rv64_alu.sv rtl/rv64_alu_regfile_top.sv testbench/tb_alu_regfile_top.sv
-    - ./obj_dir/datapath/Vtb_alu_regfile_top > obj_dir/datapath/simulation.log
-    - cat obj_dir/datapath/simulation.log
-    - grep -q "ALL TESTS PASSED" obj_dir/datapath/simulation.log
+    - ./obj_dir/datapath/Vtb_alu_regfile_top > reports/datapath-simulation.log
+    - cat reports/datapath-simulation.log
+    - python3 scripts/generate_junit.py reports/datapath-simulation.log reports/datapath-results.xml
+
+  artifacts:
+    when: always
+    reports:
+      junit: reports/*-results.xml
+    paths:
+      - reports/
+    expire_in: 7 days
