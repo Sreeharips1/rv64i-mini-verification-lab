@@ -1,4 +1,5 @@
 import re
+import os
 import subprocess
 from pathlib import Path
 from datetime import datetime
@@ -30,19 +31,33 @@ TEST_SUITES = [
 
 def get_git_info():
     try:
-        commit = subprocess.check_output(
+        git_commit = subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"],
             text=True
         ).strip()
 
-        branch = subprocess.check_output(
+        git_branch = subprocess.check_output(
             ["git", "branch", "--show-current"],
             text=True
         ).strip()
 
-        return commit, branch
     except Exception:
-        return "Unknown", "Unknown"
+        git_commit = "Unknown"
+        git_branch = "Unknown"
+
+    commit = (
+        os.getenv("CI_COMMIT_SHORT_SHA")
+        or os.getenv("GIT_COMMIT")
+        or git_commit
+    )
+
+    branch = (
+        os.getenv("CI_COMMIT_REF_NAME")
+        or os.getenv("BRANCH_NAME")
+        or git_branch
+    )
+
+    return commit, branch
 
 
 def parse_log(path):

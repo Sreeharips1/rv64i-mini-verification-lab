@@ -15,3 +15,7 @@ reports/*.log
 # Generated HTML and PDF reports
 reports/*.html
 reports/*.pdf
+
+# Python cache files
+__pycache__/
+*.pyc
