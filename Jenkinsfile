@@ -125,6 +125,26 @@ pipeline {
                 '''
             }
         }
+
+
+        stage('Generate Reports') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "Generating HTML verification report..."
+                    python3 scripts/generate_html.py
+
+                    echo "Generating PDF verification report..."
+                    python3 scripts/generate_pdf.py
+
+                    echo "Verification reports generated successfully."
+                    ls -lh reports/verification-report.html
+                    ls -lh reports/verification-report.pdf
+                '''
+            }
+        }
+
     }
 
     post {
