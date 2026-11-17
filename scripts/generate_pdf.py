@@ -17,6 +17,7 @@ from reportlab.platypus import (
     TableStyle,
     KeepTogether,
 )
+from zoneinfo import ZoneInfo
 
 PROJECT = "RV64I Mini Verification Lab"
 REPORT_DIR = Path("reports")
@@ -104,7 +105,7 @@ def main():
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
     commit, branch = get_git_info()
-    generated = datetime.now().astimezone().strftime(
+    generated = datetime.now(ZoneInfo("Asia/Kolkata")).strftime(
         "%d %b %Y, %I:%M:%S %p %Z"
     )
 
