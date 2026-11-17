@@ -11,3 +11,7 @@ obj_dir/
 # Generated verification reports
 reports/*.xml
 reports/*.log
+
+# Generated HTML and PDF reports
+reports/*.html
+reports/*.pdf
