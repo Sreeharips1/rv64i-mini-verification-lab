@@ -65,7 +65,7 @@ pipeline {
                         testbench/tb_alu.sv
 
                     ./obj_dir/alu/Vtb_alu \
-                        > reports/alu-simulation.log
+                        > reports/alu-simulation.log 2>&1
 
                     cat reports/alu-simulation.log
 
@@ -89,7 +89,7 @@ pipeline {
                         testbench/tb_register_file.sv
 
                     ./obj_dir/regfile/Vtb_register_file \
-                        > reports/register-file-simulation.log
+                        > reports/register-file-simulation.log 2>&1
 
                     cat reports/register-file-simulation.log
 
@@ -115,7 +115,7 @@ pipeline {
                         testbench/tb_alu_regfile_top.sv
 
                     ./obj_dir/datapath/Vtb_alu_regfile_top \
-                        > reports/datapath-simulation.log
+                        > reports/datapath-simulation.log 2>&1
 
                     cat reports/datapath-simulation.log
 

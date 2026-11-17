@@ -1,3 +1,4 @@
+
 module tb_alu_regfile_top;
 
     logic clk;
@@ -14,6 +15,7 @@ module tb_alu_regfile_top;
     int pass_count = 0;
     int fail_count = 0;
 
+    // Instantiate DUT
     rv64_alu_regfile_top dut (
         .clk(clk),
         .rs1(rs1),
@@ -28,23 +30,50 @@ module tb_alu_regfile_top;
         .read_data2(read_data2)
     );
 
-    // Clock generation
+    // Clock generation: 10 time-unit period
     initial clk = 0;
     always #5 clk <= ~clk;
 
+    // Reusable checking task with detailed logging
     task automatic check(
         input logic [63:0] actual,
         input logic [63:0] expected,
-        input string test_name
+        input string test_name,
+        input logic [4:0] source_reg1,
+        input logic [4:0] source_reg2,
+        input logic [63:0] source_data1,
+        input logic [63:0] source_data2,
+        input logic [4:0] destination_reg,
+        input logic [3:0] operation,
+        input logic write_enable,
+        input logic external_writeback
     );
+
+        $display("------------------------------------------------");
+        $display("TEST              : %s", test_name);
+        $display("SOURCE REG 1      : x%0d", source_reg1);
+        $display("SOURCE DATA 1     : 0x%016h", source_data1);
+        $display("SOURCE REG 2      : x%0d", source_reg2);
+        $display("SOURCE DATA 2     : 0x%016h", source_data2);
+        $display("ALU OPERATION     : 0x%h", operation);
+        $display("DESTINATION REG   : x%0d", destination_reg);
+        $display("REGISTER WRITE    : %0b", write_enable);
+        $display("EXTERNAL WRITEBACK: %0b", external_writeback);
+        $display("EXPECTED RESULT   : 0x%016h", expected);
+        $display("ACTUAL RESULT     : 0x%016h", actual);
+
         if (actual === expected) begin
-            $display("PASS: %s", test_name);
+            $display("STATUS            : PASS");
             pass_count++;
-        end else begin
-            $display("FAIL: %s expected=%h actual=%h",
-                     test_name, expected, actual);
+        end
+        else begin
+            $display("STATUS            : FAIL");
+            $display("ERROR             : Expected and actual results do not match");
             fail_count++;
         end
+
+        $display("");
+
     endtask
 
     initial begin
@@ -57,6 +86,9 @@ module tb_alu_regfile_top;
         reg_write = 0;
         external_write_data = 0;
         writeback_from_external = 0;
+
+        // Allow initial setup
+        #2;
 
         // --------------------------------
         // STEP 1: Write 10 into x5
@@ -71,7 +103,6 @@ module tb_alu_regfile_top;
         @(posedge clk);
         #1;
 
-        // Stop writing
         reg_write = 0;
 
         // --------------------------------
@@ -97,8 +128,15 @@ module tb_alu_regfile_top;
         rs2 = 6;
         #1;
 
-        check(read_data1, 64'd10, "Read x5");
-        check(read_data2, 64'd20, "Read x6");
+        check(read_data1, 64'd10, "Read x5",
+              5'd5, 5'd6,
+              read_data1, read_data2,
+              5'd0, 4'b0000, 1'b0, 1'b0);
+
+        check(read_data2, 64'd20, "Read x6",
+              5'd5, 5'd6,
+              read_data1, read_data2,
+              5'd0, 4'b0000, 1'b0, 1'b0);
 
         // --------------------------------
         // STEP 4: Execute ADD
@@ -111,7 +149,11 @@ module tb_alu_regfile_top;
         reg_write = 1;
 
         #1;
-        check(alu_result, 64'd30, "ALU computes 10 + 20");
+
+        check(alu_result, 64'd30, "ALU computes 10 + 20",
+              5'd5, 5'd6,
+              read_data1, read_data2,
+              5'd7, 4'b0000, 1'b1, 1'b0);
 
         @(posedge clk);
         #1;
@@ -125,13 +167,17 @@ module tb_alu_regfile_top;
         rs1 = 7;
         #1;
 
-        check(read_data1, 64'd30, "Result written into x7");
+        check(read_data1, 64'd30, "Result written into x7",
+              5'd7, 5'd6,
+              read_data1, read_data2,
+              5'd7, 4'b0000, 1'b0, 1'b0);
 
         // --------------------------------
         // SUMMARY
         // --------------------------------
 
-        $display("--------------------------------");
+        $display("------------------------------------------------");
+        $display("INTEGRATED DATAPATH VERIFICATION SUMMARY");
         $display("PASS COUNT: %0d", pass_count);
         $display("FAIL COUNT: %0d", fail_count);
 

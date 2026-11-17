@@ -61,23 +61,62 @@ def get_git_info():
     return commit, branch
 
 
+
 def parse_log(path):
     if not path.exists():
         raise FileNotFoundError(f"Missing simulation log: {path}")
 
     content = path.read_text(encoding="utf-8")
 
-    passed = re.findall(r"^PASS: (.+)$", content, re.MULTILINE)
-    failed = re.findall(
-        r"^FAIL: (.+?)(?: expected=.*)?$",
-        content,
-        re.MULTILINE
-    )
+    passed = []
+    failed = []
+    current_test = None
+
+    for line in content.splitlines():
+
+        # New detailed logging format
+        test_match = re.match(r"^\s*TEST\s*:\s*(.+?)\s*$", line)
+
+        if test_match:
+            current_test = test_match.group(1)
+            continue
+
+        status_match = re.match(
+            r"^\s*STATUS\s*:\s*(PASS|FAIL)\s*$",
+            line
+        )
+
+        if status_match and current_test is not None:
+            status = status_match.group(1)
+
+            if status == "PASS":
+                passed.append(current_test)
+            else:
+                failed.append(current_test)
+
+            current_test = None
+            continue
+
+        # Backward compatibility with old logs
+        legacy_pass = re.match(r"^PASS:\s*(.+)$", line)
+
+        if legacy_pass:
+            passed.append(legacy_pass.group(1))
+            continue
+
+        legacy_fail = re.match(
+            r"^FAIL:\s*(.+?)(?:\s+expected=.*)?$",
+            line
+        )
+
+        if legacy_fail:
+            failed.append(legacy_fail.group(1))
 
     if not passed and not failed:
         raise ValueError(f"No test results found in {path}")
 
     return passed, failed
+
 
 
 def add_page_number(canvas, document):

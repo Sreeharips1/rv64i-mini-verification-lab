@@ -31,22 +31,38 @@ module tb_register_file;
     initial clk = 0;
     always #5 clk <= ~clk;
 
-    // Reusable checking task
+    // Reusable checking task with detailed logging
     task automatic check(
         input logic [63:0] actual,
         input logic [63:0] expected,
-        input string test_name
+        input string test_name,
+        input logic write_enable,
+        input logic [4:0] write_reg,
+        input logic [63:0] write_data,
+        input logic [4:0] read_reg
     );
 
+        $display("----------------------------------------");
+        $display("TEST       : %s", test_name);
+        $display("WRITE EN   : %0b", write_enable);
+        $display("WRITE REG  : x%0d", write_reg);
+        $display("WRITE DATA : 0x%016h", write_data);
+        $display("READ REG   : x%0d", read_reg);
+        $display("READ DATA  : 0x%016h", actual);
+        $display("EXPECTED   : 0x%016h", expected);
+
         if (actual === expected) begin
-            $display("PASS: %s", test_name);
+            $display("STATUS     : PASS");
+            $display("ERROR      : None");
             pass_count++;
         end
         else begin
-            $display("FAIL: %s expected=%h actual=%h",
-                     test_name, expected, actual);
+            $display("STATUS     : FAIL");
+            $display("ERROR      : Read data does not match expected data");
             fail_count++;
         end
+
+        $display("");
 
     endtask
 
@@ -74,7 +90,8 @@ module tb_register_file;
         rs1 = 5;
         #1;
 
-        check(rd1, 64'd100, "Write and read x5");
+        check(rd1, 64'd100, "Write and read x5",
+              1'b1, 5'd5, 64'd100, 5'd5);
 
         // Test 2: Write 200 to x6
         @(negedge clk);
@@ -90,8 +107,11 @@ module tb_register_file;
         rs2 = 6;
         #1;
 
-        check(rd1, 64'd100, "Read x5");
-        check(rd2, 64'd200, "Read x6 simultaneously");
+        check(rd1, 64'd100, "Read x5",
+              1'b0, 5'd6, 64'd200, 5'd5);
+
+        check(rd2, 64'd200, "Read x6 simultaneously",
+              1'b0, 5'd6, 64'd200, 5'd6);
 
         // Test 3: Attempt to write 999 to x0
         @(negedge clk);
@@ -106,7 +126,8 @@ module tb_register_file;
         rs1 = 0;
         #1;
 
-        check(rd1, 64'd0, "x0 always returns zero");
+        check(rd1, 64'd0, "x0 always returns zero",
+              1'b1, 5'd0, 64'd999, 5'd0);
 
         // Test 4: Write disabled
         @(negedge clk);
@@ -120,10 +141,12 @@ module tb_register_file;
         rs1 = 5;
         #1;
 
-        check(rd1, 64'd100, "Write disabled preserves x5");
+        check(rd1, 64'd100, "Write disabled preserves x5",
+              1'b0, 5'd5, 64'd999, 5'd5);
 
         // Summary
-        $display("--------------------------------");
+        $display("----------------------------------------");
+        $display("REGISTER FILE VERIFICATION SUMMARY");
         $display("PASS COUNT: %0d", pass_count);
         $display("FAIL COUNT: %0d", fail_count);
 

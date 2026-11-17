@@ -17,7 +17,8 @@ module tb_alu;
         .result(result)
     );
 
-    // Task to check ALU results
+
+    // Task to check ALU results and generate detailed logs
     task automatic check_result(
         input string test_name,
         input logic [3:0] op,
@@ -30,19 +31,31 @@ module tb_alu;
         operand_a = a;
         operand_b = b;
 
+        // Allow combinational ALU output to settle
         #1;
 
+        $display("----------------------------------------");
+        $display("TEST     : %s", test_name);
+        $display("ALU OP   : 0x%h", op);
+        $display("INPUT A  : 0x%016h", a);
+        $display("INPUT B  : 0x%016h", b);
+        $display("EXPECTED : 0x%016h", expected);
+        $display("ACTUAL   : 0x%016h", result);
+
         if (result === expected) begin
-            $display("PASS: %s", test_name);
+            $display("STATUS   : PASS");
             pass_count++;
         end
         else begin
-            $display("FAIL: %s expected=%h actual=%h",
-                     test_name, expected, result);
+            $display("STATUS   : FAIL");
+            $display("ERROR    : Expected and actual results do not match");
             fail_count++;
         end
 
+        $display("");
+
     endtask
+
 
     initial begin
 
